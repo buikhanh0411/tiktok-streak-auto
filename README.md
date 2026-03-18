@@ -72,8 +72,4 @@ python src/cli/main.py send --engine playwright --users "user1,user2" --message 
 - `/send_footer` - Force send weekly instructions to all users.
 - `/change_user` - Instructions to update recipients.
 
-## Architecture
-- **Interfaces:** `IBrowserEngine` and `ISocialPlatform` define the contracts.
-- **Engines:** `PlaywrightEngine` and `NodriverEngine` implement browser automation.
-- **Platforms:** `TikTokPlatform` implements TikTok-specific logic.
-- **Messenger:** Orchestrates engines and platforms.
+
