@@ -73,7 +73,7 @@ class Messenger:
 
         return False
 
-    async def check_cookies_health(self) -> bool:
+    async def check_cookies_health(self, headless: bool = False) -> bool:
         """Verify if the saved cookies are still valid without running a full streak"""
         if not os.path.exists(self.cookie_file):
             print(messages.MSG_NO_COOKIES_FOUND)
@@ -82,7 +82,7 @@ class Messenger:
         with open(self.cookie_file, "r") as f:
             cookies = json.load(f)
 
-        await self.engine.launch(headless=True)  # Headless is fine for check
+        await self.engine.launch(headless=headless)
         try:
             success = await self.platform.login_with_cookies(cookies)
             if success:
@@ -93,9 +93,9 @@ class Messenger:
         finally:
             await self.engine.close()
 
-    async def login_manually(self) -> None:
+    async def login_manually(self, headless: bool = False) -> None:
         """Helper to let user login and save cookies"""
-        await self.engine.launch(headless=False)
+        await self.engine.launch(headless=headless)
         await self.engine.goto("https://www.tiktok.com/login")
         print(messages.MSG_WAITING_LOGIN)
 
@@ -119,13 +119,17 @@ class Messenger:
             print(messages.MSG_CAPTURE_FAILED.format(error=str(e)))
         finally:
             await self.engine.close()
+            # Wait a few seconds to let the browser process terminate cleanly
+            # before the event loop is destroyed by the CLI/Bot.
+            print("[*] Cleaning up browser processes (waiting 5s)...")
+            await asyncio.sleep(5)
 
     async def run_streak(
         self,
         nicknames: List[str],
         messages_list: List[str],
         force_footer: bool = False,
-        headless: bool = True,
+        headless: bool = False,
         force: bool = False,
         footer_only: bool = False,
     ) -> None:

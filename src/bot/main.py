@@ -46,7 +46,7 @@ def restricted(func):
         return await func(update, context, *args, **kwargs)
     return wrapped
 
-async def get_messenger_and_engine(headless=True):
+async def get_messenger_and_engine(headless=config.HEADLESS):
     """Helper to initialize the engine and messenger."""
     engine = PlaywrightEngine()
     platform = TikTokPlatform(engine)
@@ -82,10 +82,10 @@ async def status_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def check_cookies_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Manual cookie health check."""
     await update.message.reply_text(messages.CHECKING_COOKIES, parse_mode='HTML')
-    messenger, _ = await get_messenger_and_engine(headless=True)
+    messenger, _ = await get_messenger_and_engine(headless=config.HEADLESS)
     
     try:
-        success = await messenger.check_cookies_health()
+        success = await messenger.check_cookies_health(headless=config.HEADLESS)
         if success:
             await update.message.reply_text(messages.COOKIES_HEALTHY, parse_mode='HTML')
         else:
@@ -102,7 +102,7 @@ async def send_streak_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         
     await update.message.reply_text(messages.STARTING_STREAK, parse_mode='HTML')
     
-    messenger, engine = await get_messenger_and_engine(headless=True)
+    messenger, engine = await get_messenger_and_engine(headless=config.HEADLESS)
     
     with open(USERS_FILE, "r") as f:
         nicknames = [line.strip() for line in f if line.strip()]
@@ -111,7 +111,7 @@ async def send_streak_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         templates = [line.strip() for line in f if line.strip()]
 
     try:
-        await messenger.run_streak(nicknames, templates)
+        await messenger.run_streak(nicknames, templates, headless=config.HEADLESS)
         await update.message.reply_text(messages.STREAK_COMPLETED, parse_mode='HTML')
     except Exception as e:
         await update.message.reply_text(messages.STREAK_FAILED.format(error=html.escape(str(e))), parse_mode='HTML')
@@ -125,7 +125,7 @@ async def send_footer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         
     await update.message.reply_text(messages.STARTING_FORCED_FOOTER, parse_mode='HTML')
     
-    messenger, engine = await get_messenger_and_engine(headless=True)
+    messenger, engine = await get_messenger_and_engine(headless=config.HEADLESS)
     
     try:
         with open(USERS_FILE, "r") as f:
@@ -135,7 +135,7 @@ async def send_footer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         # force=True bypasses the "already run today" check
         # footer_only=True ensures only the footer is sent
-        await messenger.run_streak(nicknames, templates, footer_only=True, force=True, headless=True)
+        await messenger.run_streak(nicknames, templates, footer_only=True, force=True, headless=config.HEADLESS)
         await update.message.reply_text(messages.FOOTER_COMPLETED, parse_mode='HTML')
     except Exception as e:
         await update.message.reply_text(messages.RUN_FAILED.format(error=html.escape(str(e))), parse_mode='HTML')
@@ -173,8 +173,8 @@ async def document_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def daily_health_check_job(context: ContextTypes.DEFAULT_TYPE):
     """Automatic job for checking cookies and notifying user."""
-    messenger, _ = await get_messenger_and_engine(headless=True)
-    success = await messenger.check_cookies_health()
+    messenger, _ = await get_messenger_and_engine(headless=config.HEADLESS)
+    success = await messenger.check_cookies_health(headless=config.HEADLESS)
     
     if success:
         await context.bot.send_message(chat_id=ALLOWED_USER_ID, text=messages.DAILY_HEALTH_HEALTHY, parse_mode='HTML')
@@ -203,7 +203,7 @@ async def daily_streak_job(context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(chat_id=ALLOWED_USER_ID, text=messages.AUTO_STREAK_STARTING, parse_mode='HTML')
     
-    messenger, engine = await get_messenger_and_engine(headless=True)
+    messenger, engine = await get_messenger_and_engine(headless=config.HEADLESS)
     
     try:
         with open(USERS_FILE, "r") as f:
@@ -211,7 +211,7 @@ async def daily_streak_job(context: ContextTypes.DEFAULT_TYPE):
         with open(MESSAGES_FILE, "r") as f:
             templates = [line.strip() for line in f if line.strip()]
 
-        await messenger.run_streak(nicknames, templates, headless=True)
+        await messenger.run_streak(nicknames, templates, headless=config.HEADLESS)
         await context.bot.send_message(chat_id=ALLOWED_USER_ID, text=messages.AUTO_STREAK_COMPLETED, parse_mode='HTML')
     except Exception as e:
         await context.bot.send_message(chat_id=ALLOWED_USER_ID, text=messages.AUTO_STREAK_ERROR.format(error=html.escape(str(e))), parse_mode='HTML')

@@ -37,18 +37,22 @@ class TikTokPlatform(ISocialPlatform):
     async def login_with_cookies(self, cookies: List[Dict[str, Any]]) -> bool:
         """Inject cookies and verify login state"""
         print(messages.MSG_NAVIGATING_TIKTOK)
+        # Navigate to a basic page first to ensure domain context
         await self.engine.goto(self.BASE_URL)
+        await asyncio.sleep(3) # Wait for initial load
         
         print(messages.MSG_INJECTING_COOKIES.format(count=len(cookies)))
         await self.engine.set_cookies(cookies)
-        await asyncio.sleep(2) # Buffer to settle cookies
+        await asyncio.sleep(3) # Buffer to settle cookies
         
         print(messages.MSG_REFRESHING_COOKIES)
+        # Refresh while on the domain
         await self.engine.goto(self.BASE_URL)
         
         # Wait for the feed or a profile indicator to appear
+        # Increase verification time to allow scripts to load
         print(messages.MSG_WAITING_VERIFICATION)
-        await asyncio.sleep(5)
+        await asyncio.sleep(10)
         return await self.is_logged_in()
 
 

@@ -8,17 +8,15 @@ from typing import Optional, List
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from src.engines.playwright_engine import PlaywrightEngine
-from src.engines.nodriver_engine import NodriverEngine
 from src.platforms.tiktok import TikTokPlatform
 from src.core.messenger import Messenger
 
 def get_engine(engine_name: str):
     if engine_name.lower() == 'playwright':
         return PlaywrightEngine()
-    elif engine_name.lower() == 'nodriver':
-        return NodriverEngine()
     else:
-        raise click.BadParameter(f"Unknown engine: {engine_name}. Choose 'playwright' or 'nodriver'.")
+        # Default to Playwright if unknown or not specified
+        return PlaywrightEngine()
 
 @click.group()
 def cli():
@@ -26,26 +24,28 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--engine', '-e', default='nodriver', help='Browser engine to use: playwright or nodriver (default)')
-def login(engine: str):
+@click.option('--engine', '-e', default='playwright', help='Browser engine to use: playwright (default)')
+@click.option('--headless/--no-headless', default=False, help='Run browser in headless mode (default: False for login)')
+def login(engine: str, headless: bool):
     """Manually login to TikTok and capture cookies"""
     engine_instance = get_engine(engine)
     platform = TikTokPlatform(engine_instance)
     messenger = Messenger(engine_instance, platform)
     
-    click.echo(f"[*] Starting {engine} for manual login...")
-    asyncio.run(messenger.login_manually())
+    click.echo(f"[*] Starting {engine} for manual login (headless={headless})...")
+    asyncio.run(messenger.login_manually(headless=headless))
 
 @cli.command()
-@click.option('--engine', '-e', default='playwright', help='Browser engine to use: playwright or nodriver')
-def check_cookies(engine: str):
+@click.option('--engine', '-e', default='playwright', help='Browser engine to use: playwright (default)')
+@click.option('--headless/--no-headless', default=True, help='Run browser in headless mode (default: True)')
+def check_cookies(engine: str, headless: bool):
     """Check if the current cookies are still valid (healthy)"""
     engine_instance = get_engine(engine)
     platform = TikTokPlatform(engine_instance)
     messenger = Messenger(engine_instance, platform)
     
-    click.echo(f"[*] Checking cookie health using {engine}...")
-    success = asyncio.run(messenger.check_cookies_health())
+    click.echo(f"[*] Checking cookie health using {engine} (headless={headless})...")
+    success = asyncio.run(messenger.check_cookies_health(headless=headless))
     if not success:
         sys.exit(1)
 
@@ -54,9 +54,10 @@ def check_cookies(engine: str):
 @click.option('--file', '-f', type=click.Path(exists=True), help='Text file containing nicknames (one per line)')
 @click.option('--message', '-m', multiple=True, help='Message template (can be used multiple times for randomization)')
 @click.option('--msg-file', type=click.Path(exists=True), help='Text file containing message templates (one per line)')
-@click.option('--engine', '-e', default='playwright', help='Browser engine to use: playwright or nodriver')
+@click.option('--engine', '-e', default='playwright', help='Browser engine to use: playwright (default)')
 @click.option('--footer', is_flag=True, help='FORCE include the long instruction footer message (ignore 7-day rule)')
-def send(users: Optional[str], file: Optional[str], message: List[str], msg_file: Optional[str], engine: str, footer: bool):
+@click.option('--headless/--no-headless', default=True, help='Run browser in headless mode (default: True)')
+def send(users: Optional[str], file: Optional[str], message: List[str], msg_file: Optional[str], engine: str, footer: bool, headless: bool):
     """Send randomized messages with streak prefix and periodic weekly instructions"""
     nicknames = []
     
@@ -83,9 +84,9 @@ def send(users: Optional[str], file: Optional[str], message: List[str], msg_file
     platform = TikTokPlatform(engine_instance)
     messenger = Messenger(engine_instance, platform)
     
-    click.echo(f"[*] Starting message streak for {len(nicknames)} users using {engine}...")
+    click.echo(f"[*] Starting message streak for {len(nicknames)} users using {engine} (headless={headless})...")
     # Map CLI 'footer' flag to 'force_footer' in Messenger
-    asyncio.run(messenger.run_streak(nicknames, templates, force_footer=footer))
+    asyncio.run(messenger.run_streak(nicknames, templates, force_footer=footer, headless=headless))
 
 if __name__ == '__main__':
     cli()

@@ -1,3 +1,4 @@
+import platform
 from typing import Any, List, Dict, Optional
 import asyncio
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
@@ -12,13 +13,19 @@ class PlaywrightEngine(IBrowserEngine):
         self._browser: Optional[Browser] = None
         self._context: Optional[BrowserContext] = None
         self._page: Optional[Page] = None
+        
+        # Determine User Agent based on OS
+        if platform.system() == "Windows":
+            self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        else:
+            self.user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 
     async def launch(self, headless: bool = True) -> None:
         self._playwright_context_manager = async_playwright()
         self._playwright = await self._playwright_context_manager.start()
         self._browser = await self._playwright.chromium.launch(headless=headless)
         self._context = await self._browser.new_context(
-            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            user_agent=self.user_agent,
             viewport={'width': 1920, 'height': 1080}
         )
         self._page = await self._context.new_page()
