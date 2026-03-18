@@ -2,6 +2,5 @@ playwright
 click
 pydantic
 python-dotenv
-nodriver
 python-telegram-bot
 apscheduler
